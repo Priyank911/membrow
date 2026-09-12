@@ -1,0 +1,39 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Normalize git object store for Copilot tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -f .git/objects/info/alternates ]]; then
+            echo "Detected alternates file; dissociating repository"
+            git repack -a -d
+            rm -f .git/objects/info/alternates
+            git fsck --connectivity-only
+          else
+            echo "No alternates file present"
+          fi
+
+      - name: Ensure main is available locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin +refs/heads/main:refs/remotes/origin/main
