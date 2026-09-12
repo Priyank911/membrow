@@ -6,7 +6,7 @@ export type SearchItem = {
 
 export type TraceStep = {
   name: string;
-  status: 'pending' | 'running' | 'success' | 'failed';
+  status: "pending" | "running" | "success" | "failed";
   started_at?: string;
   ended_at?: string;
   error?: string;
@@ -15,12 +15,17 @@ export type TraceStep = {
 export type RunRecord = {
   id: string;
   query: string;
-  status: 'queued' | 'running' | 'succeeded' | 'failed';
+  status: "queued" | "running" | "succeeded" | "failed";
   result?: {
     search_results: SearchItem[];
     synthesis: {
       answer: string;
-      sources: Array<{ title: string; url: string; snippet: string; text: string }>;
+      sources: Array<{
+        title: string;
+        url: string;
+        snippet: string;
+        text: string;
+      }>;
     };
   };
   trace: TraceStep[];

@@ -39,10 +39,10 @@ func NewServer(cfg config.Config, logger *slog.Logger, provider search.Provider,
 			logger.Error("request failed", "path", c.Path(), "method", c.Method(), "request_id", observability.RequestIDFromCtx(c), "error", appErr.Error())
 			return c.Status(appErr.Status).JSON(fiber.Map{
 				"error": fiber.Map{
-					"code": appErr.Code,
-					"message": appErr.Message,
-					"details": appErr.Details,
-					"retryable": appErr.Retryable,
+					"code":       appErr.Code,
+					"message":    appErr.Message,
+					"details":    appErr.Details,
+					"retryable":  appErr.Retryable,
 					"request_id": observability.RequestIDFromCtx(c),
 				},
 			})
@@ -94,7 +94,7 @@ func (s *Server) registerRoutes(provider search.Provider) {
 			return err
 		}
 		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
-			"data": fiber.Map{"run_id": runID, "status": agent.RunRunning},
+			"data":       fiber.Map{"run_id": runID, "status": agent.RunRunning},
 			"request_id": observability.RequestIDFromCtx(c),
 		})
 	})

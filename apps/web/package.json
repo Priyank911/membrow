@@ -7,20 +7,20 @@
     "dev": "vite dev --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint": "npm run check && npm run format:check",
     "format:check": "prettier --check .",
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@sveltejs/adapter-node": "^5.2.9",
-    "@sveltejs/kit": "^2.15.0",
+    "@sveltejs/adapter-node": "^5.5.1",
+    "@sveltejs/kit": "^2.70.0",
     "@types/node": "^22.10.2",
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.2",
     "svelte": "^5.15.0",
     "svelte-check": "^4.1.1",
     "typescript": "^5.7.2",
-    "vite": "^5.4.11"
+    "vite": "^8.0.0"
   }
 }

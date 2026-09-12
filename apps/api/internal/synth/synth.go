@@ -9,8 +9,8 @@ import (
 )
 
 type Result struct {
-	Answer  string            `json:"answer"`
-	Sources []extract.Output  `json:"sources"`
+	Answer  string           `json:"answer"`
+	Sources []extract.Output `json:"sources"`
 }
 
 type Synthesizer interface {

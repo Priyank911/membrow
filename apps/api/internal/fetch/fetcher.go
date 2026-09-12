@@ -26,7 +26,7 @@ type HTTPFetcher struct {
 
 func NewHTTPFetcher(userAgent string) *HTTPFetcher {
 	return &HTTPFetcher{
-		client: &http.Client{Timeout: 10 * time.Second},
+		client:    &http.Client{Timeout: 10 * time.Second},
 		userAgent: userAgent,
 	}
 }

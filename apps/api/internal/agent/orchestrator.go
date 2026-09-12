@@ -36,13 +36,13 @@ func NewOrchestrator(
 		workerPoolSize = 1
 	}
 	return &Orchestrator{
-		search: searchProvider,
-		fetcher: fetcher,
-		extractor: extractor,
-		synthesizer: synthesizer,
+		search:         searchProvider,
+		fetcher:        fetcher,
+		extractor:      extractor,
+		synthesizer:    synthesizer,
 		workerPoolSize: workerPoolSize,
-		maxRetries: maxRetries,
-		retryBackoff: retryBackoff,
+		maxRetries:     maxRetries,
+		retryBackoff:   retryBackoff,
 	}
 }
 

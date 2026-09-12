@@ -24,7 +24,7 @@ type BasicExtractor struct {
 }
 
 func NewBasicExtractor() *BasicExtractor {
-	return &BasicExtractor{tagRegex: regexp.MustCompile(`<[^>]*>`) }
+	return &BasicExtractor{tagRegex: regexp.MustCompile(`<[^>]*>`)}
 }
 
 func (e *BasicExtractor) Extract(_ context.Context, document fetch.Document) (Output, error) {
@@ -38,9 +38,9 @@ func (e *BasicExtractor) Extract(_ context.Context, document fetch.Document) (Ou
 		snippet = snippet[:180]
 	}
 	return Output{
-		URL: document.URL,
-		Title: document.URL,
+		URL:     document.URL,
+		Title:   document.URL,
 		Snippet: snippet,
-		Text: plain,
+		Text:    plain,
 	}, nil
 }

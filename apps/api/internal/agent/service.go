@@ -137,12 +137,12 @@ func agentToStorageRun(in RunRecord) storage.RunRecord {
 		})
 	}
 	return storage.RunRecord{
-		ID: in.ID,
-		Query: in.Query,
-		Status: storage.RunStatus(in.Status),
-		Result: result,
-		Error: runErr,
-		Trace: trace,
+		ID:        in.ID,
+		Query:     in.Query,
+		Status:    storage.RunStatus(in.Status),
+		Result:    result,
+		Error:     runErr,
+		Trace:     trace,
 		CreatedAt: in.CreatedAt,
 		UpdatedAt: in.UpdatedAt,
 	}
@@ -176,12 +176,12 @@ func storageToAgentRun(in storage.RunRecord) RunRecord {
 		})
 	}
 	return RunRecord{
-		ID: in.ID,
-		Query: in.Query,
-		Status: RunStatus(in.Status),
-		Result: result,
-		Error: runErr,
-		Trace: trace,
+		ID:        in.ID,
+		Query:     in.Query,
+		Status:    RunStatus(in.Status),
+		Result:    result,
+		Error:     runErr,
+		Trace:     trace,
 		CreatedAt: in.CreatedAt,
 		UpdatedAt: in.UpdatedAt,
 	}
