@@ -1,207 +1,353 @@
 <script lang="ts">
-  import type { RunRecord, SearchItem } from '$lib/types';
+  import { onMount } from 'svelte';
+  import type {
+    BrowserTab,
+    KnowledgeCategory,
+    KnowledgeItem,
+    McpConnectionConfig,
+    ToastMessage
+  } from '$lib/types';
+  import { mcpClient } from '$lib/mcpClient';
+  import { extractPageMetadata } from '$lib/extractor';
 
-  const apiBase = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  import BrowserChrome from '$lib/components/BrowserChrome.svelte';
+  import TabBar from '$lib/components/TabBar.svelte';
+  import WebViewContainer from '$lib/components/WebViewContainer.svelte';
+  import SidebarDrawer from '$lib/components/SidebarDrawer.svelte';
+  import SnapshotModal from '$lib/components/SnapshotModal.svelte';
+  import Toast from '$lib/components/Toast.svelte';
 
-  let query = '';
-  let loading = false;
-  let passthroughResults: SearchItem[] = [];
-  let run: RunRecord | null = null;
-  let errorMessage = '';
+  const HOME_URL = 'membrow://home';
 
-  async function runSearch() {
-    errorMessage = '';
-    loading = true;
-    run = null;
-    try {
-      const response = await fetch(`${apiBase}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, limit: 5 })
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error?.message || 'Search request failed');
-      }
-      passthroughResults = payload.data.results;
-    } catch (error) {
-      errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    } finally {
-      loading = false;
+  // Tabs state
+  let tabs: BrowserTab[] = [
+    {
+      id: 'tab-1',
+      url: HOME_URL,
+      title: 'Membrow Home',
+      loading: false,
+      canGoBack: false,
+      canGoForward: false
+    }
+  ];
+  let activeTabId: string = 'tab-1';
+
+  $: activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
+
+  // MCP & Knowledge state
+  let mcpConfig: McpConnectionConfig = mcpClient.getConfig();
+  let knowledgeItems: KnowledgeItem[] = [];
+
+  // Sidebar Drawer state
+  let showDrawer: boolean = false;
+
+  // Snapshot Modal state
+  let showSnapshotModal: boolean = false;
+  let snapshotImage: string = '';
+  let snapshotTitle: string = '';
+  let snapshotUrl: string = '';
+  let snapshotAuthor: string = '';
+  let snapshotCategory: KnowledgeCategory = 'research';
+  let snapshotSummary: string = '';
+  let snapshotTags: string[] = [];
+
+  // Webview reference
+  let webviewContainerRef: WebViewContainer;
+
+  // Toast notifications
+  let toasts: ToastMessage[] = [];
+
+  onMount(() => {
+    // Load local bucket items and configuration
+    knowledgeItems = mcpClient.getItems();
+    mcpConfig = mcpClient.getConfig();
+  });
+
+  function showToast(text: string, type: 'success' | 'error' | 'info' = 'info') {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    toasts = [...toasts, { id, text, type }];
+    setTimeout(() => {
+      toasts = toasts.filter((t) => t.id !== id);
+    }, 3200);
+  }
+
+  // Tab operations
+  function handleSelectTab(id: string) {
+    activeTabId = id;
+  }
+
+  function handleNewTab() {
+    const newId = `tab-${Date.now()}`;
+    const newTab: BrowserTab = {
+      id: newId,
+      url: HOME_URL,
+      title: 'New Tab',
+      loading: false,
+      canGoBack: false,
+      canGoForward: false
+    };
+    tabs = [...tabs, newTab];
+    activeTabId = newId;
+  }
+
+  function handleCloseTab(id: string) {
+    if (tabs.length <= 1) return;
+    const index = tabs.findIndex((t) => t.id === id);
+    tabs = tabs.filter((t) => t.id !== id);
+    if (activeTabId === id) {
+      const nextTab = tabs[Math.max(0, index - 1)];
+      activeTabId = nextTab.id;
     }
   }
 
-  async function runAgent() {
-    errorMessage = '';
-    loading = true;
-    passthroughResults = [];
-    run = null;
+  // Navigation operations
+  function handleNavigate(newUrl: string) {
+    const isHome = newUrl === HOME_URL || !newUrl;
+    const resolvedUrl = isHome ? HOME_URL : newUrl;
+    const resolvedTitle = isHome ? 'Membrow Home' : newUrl;
 
-    try {
-      const startResponse = await fetch(`${apiBase}/agent/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, limit: 5 })
+    tabs = tabs.map((t) => {
+      if (t.id === activeTabId) {
+        return {
+          ...t,
+          url: resolvedUrl,
+          title: resolvedTitle,
+          loading: !isHome
+        };
+      }
+      return t;
+    });
+  }
+
+  function handleBack() {
+    showToast('Navigation: Back', 'info');
+  }
+
+  function handleForward() {
+    showToast('Navigation: Forward', 'info');
+  }
+
+  function handleReload() {
+    if (activeTab.url === HOME_URL) {
+      knowledgeItems = mcpClient.getItems();
+      showToast('Home page refreshed', 'info');
+      return;
+    }
+    tabs = tabs.map((t) => {
+      if (t.id === activeTabId) {
+        return { ...t, loading: true };
+      }
+      return t;
+    });
+    setTimeout(() => {
+      tabs = tabs.map((t) => {
+        if (t.id === activeTabId) {
+          return { ...t, loading: false };
+        }
+        return t;
       });
-      const startPayload = await startResponse.json();
-      if (!startResponse.ok) {
-        throw new Error(startPayload?.error?.message || 'Failed to start agent run');
+    }, 600);
+  }
+
+  function handleHome() {
+    handleNavigate(HOME_URL);
+  }
+
+  function handlePageLoaded(title: string, url: string) {
+    tabs = tabs.map((t) => {
+      if (t.id === activeTabId) {
+        return {
+          ...t,
+          title: url === HOME_URL ? 'Membrow Home' : title || t.title,
+          url: url || t.url,
+          loading: false
+        };
+      }
+      return t;
+    });
+  }
+
+  function handleLoadingChange(loading: boolean) {
+    tabs = tabs.map((t) => {
+      if (t.id === activeTabId) {
+        return { ...t, loading };
+      }
+      return t;
+    });
+  }
+
+  // Snapshot & Clip Workflow
+  async function handleTriggerSnapshot() {
+    try {
+      showToast('Clipping visual snapshot & extracting metadata...', 'info');
+
+      // 1. Capture visual image
+      let imgData = '';
+      if (webviewContainerRef?.captureScreenshot) {
+        imgData = await webviewContainerRef.captureScreenshot();
       }
 
-      const runID = startPayload.data.run_id;
-      await pollRun(runID);
-    } catch (error) {
-      errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    } finally {
-      loading = false;
+      // 2. Extract structured metadata
+      const extracted = extractPageMetadata(activeTab.url, activeTab.title, '');
+
+      snapshotImage = imgData;
+      snapshotTitle = extracted.title;
+      snapshotUrl = extracted.url;
+      snapshotAuthor = extracted.author;
+      snapshotCategory = extracted.category;
+      snapshotSummary = extracted.summary;
+      snapshotTags = extracted.tags;
+
+      showSnapshotModal = true;
+    } catch (err: any) {
+      showToast(err.message || 'Snapshot failed', 'error');
     }
   }
 
-  async function pollRun(runID: string) {
-    const maxPolls = 20;
-    for (let i = 0; i < maxPolls; i += 1) {
-      const response = await fetch(`${apiBase}/agent/run/${runID}`);
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error?.message || 'Failed to get run status');
-      }
-      run = payload.data as RunRecord;
-      if (run.status === 'succeeded' || run.status === 'failed') {
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 800));
+  async function handleSaveSnapshot(data: Partial<KnowledgeItem>) {
+    const newItem: KnowledgeItem = {
+      id: `item-${Date.now()}`,
+      title: data.title || activeTab.title,
+      url: data.url || activeTab.url,
+      domain: new URL(data.url || activeTab.url).hostname.replace(/^www\./, ''),
+      author: data.author || 'unknown',
+      category: data.category || 'research',
+      summary: data.summary || '',
+      tags: data.tags || [],
+      imageSnapshot: data.imageSnapshot || snapshotImage,
+      createdAt: new Date().toISOString(),
+      mcpSynced: mcpConfig.status === 'connected',
+      notes: data.notes || ''
+    };
+
+    await mcpClient.addItem(newItem);
+    knowledgeItems = mcpClient.getItems();
+    showSnapshotModal = false;
+
+    showToast(`Stored in Memron Bucket [${newItem.category}]`, 'success');
+  }
+
+  // MCP Sidebar actions
+  async function handleConnectMcp() {
+    const res = await mcpClient.connect();
+    mcpConfig = mcpClient.getConfig();
+    if (!res.success) {
+      throw new Error(res.error || 'Failed to connect to MCP server');
     }
-    throw new Error('Agent run timed out while waiting for completion');
+  }
+
+  function handleDisconnectMcp() {
+    mcpClient.disconnect();
+    mcpConfig = mcpClient.getConfig();
+    showToast('Disconnected from Memron MCP', 'info');
+  }
+
+  function handleSaveMcpConfig(cfg: Partial<McpConnectionConfig>) {
+    mcpConfig = mcpClient.saveConfig(cfg);
+  }
+
+  function handleDeleteKnowledgeItem(id: string) {
+    mcpClient.deleteItem(id);
+    knowledgeItems = mcpClient.getItems();
+    showToast('Item removed from bucket', 'info');
   }
 </script>
 
-<main>
-  <h1>Membrow</h1>
-  <p>Agentic browser/search scaffold (plan → search → fetch → extract → synthesize)</p>
+<div class="browser-app-shell">
+  <!-- Tab Strip -->
+  <TabBar
+    {tabs}
+    {activeTabId}
+    onSelectTab={handleSelectTab}
+    onCloseTab={handleCloseTab}
+    onNewTab={handleNewTab}
+  />
 
-  <div class="search-box">
-    <input bind:value={query} placeholder="Search the web" />
-    <button on:click={runSearch} disabled={!query || loading}>Search</button>
-    <button on:click={runAgent} disabled={!query || loading}>Run Agent</button>
-  </div>
+  <!-- Browser Chrome Top Bar -->
+  <BrowserChrome
+    url={activeTab?.url || ''}
+    loading={activeTab?.loading || false}
+    canGoBack={activeTab?.canGoBack || false}
+    canGoForward={activeTab?.canGoForward || false}
+    isMcpConnected={mcpConfig.status === 'connected'}
+    mcpBucketName={mcpConfig.bucketName}
+    onToggleDrawer={() => (showDrawer = !showDrawer)}
+    onNavigate={handleNavigate}
+    onBack={handleBack}
+    onForward={handleForward}
+    onReload={handleReload}
+    onHome={handleHome}
+    onSnapshot={handleTriggerSnapshot}
+  />
 
-  {#if errorMessage}
-    <div class="error" role="alert">{errorMessage}</div>
-  {/if}
+  <!-- Active Viewport Container -->
+  <main class="browser-viewport">
+    <WebViewContainer
+      bind:this={webviewContainerRef}
+      currentUrl={activeTab?.url || HOME_URL}
+      onNavigate={handleNavigate}
+      onOpenDrawer={() => (showDrawer = true)}
+      {knowledgeItems}
+      isMcpConnected={mcpConfig.status === 'connected'}
+      bucketName={mcpConfig.bucketName}
+      onPageLoaded={handlePageLoaded}
+      onLoadingChange={handleLoadingChange}
+    />
+  </main>
 
-  {#if passthroughResults.length > 0}
-    <section>
-      <h2>Search Results</h2>
-      <ul>
-        {#each passthroughResults as item}
-          <li>
-            <a href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
-            <p>{item.snippet}</p>
-          </li>
-        {/each}
-      </ul>
-    </section>
-  {/if}
+  <!-- Sidebar Drawer (Hamburger Menu) -->
+  <SidebarDrawer
+    bind:show={showDrawer}
+    {mcpConfig}
+    items={knowledgeItems}
+    onClose={() => (showDrawer = false)}
+    onSaveConfig={handleSaveMcpConfig}
+    onConnectMcp={handleConnectMcp}
+    onDisconnectMcp={handleDisconnectMcp}
+    onDeleteItem={handleDeleteKnowledgeItem}
+    onOpenUrlInTab={(url) => {
+      handleNavigate(url);
+      showDrawer = false;
+    }}
+    onShowToast={showToast}
+  />
 
-  {#if run}
-    <section>
-      <h2>Agent Timeline ({run.status})</h2>
-      <ul class="timeline">
-        {#each run.trace as step}
-          <li class={step.status}>
-            <strong>{step.name}</strong>
-            <span>{step.status}</span>
-            {#if step.error}<small>{step.error}</small>{/if}
-          </li>
-        {/each}
-      </ul>
-    </section>
+  <!-- Snapshot & Extraction Confirmation Modal -->
+  <SnapshotModal
+    bind:show={showSnapshotModal}
+    imageSnapshot={snapshotImage}
+    initialTitle={snapshotTitle}
+    initialUrl={snapshotUrl}
+    initialAuthor={snapshotAuthor}
+    initialCategory={snapshotCategory}
+    initialSummary={snapshotSummary}
+    initialTags={snapshotTags}
+    bucketName={mcpConfig.bucketName}
+    onSave={handleSaveSnapshot}
+    onClose={() => (showSnapshotModal = false)}
+  />
 
-    {#if run.result?.synthesis}
-      <section>
-        <h2>Synthesized Answer</h2>
-        <pre>{run.result.synthesis.answer}</pre>
-      </section>
-    {/if}
-
-    {#if run.error}
-      <section class="error" role="alert">
-        <strong>{run.error.code}</strong>
-        <p>{run.error.message}</p>
-      </section>
-    {/if}
-  {/if}
-</main>
+  <!-- Toast Notifications -->
+  <Toast bind:toasts />
+</div>
 
 <style>
-  main {
-    max-width: 960px;
-    margin: 2rem auto;
-    font-family: Arial, Helvetica, sans-serif;
-    padding: 0 1rem;
+  .browser-app-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    background: #09090b;
+    color: #fafafa;
+    overflow: hidden;
+    position: relative;
   }
 
-  .search-box {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  input {
-    padding: 0.8rem;
-    border: 1px solid #ccc;
-    border-radius: 0.4rem;
-  }
-
-  button {
-    border: none;
-    background: #0057d9;
-    color: white;
-    padding: 0.8rem 1rem;
-    border-radius: 0.4rem;
-    cursor: pointer;
-  }
-
-  button:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-
-  .timeline li {
-    border-left: 4px solid #ddd;
-    margin: 0.4rem 0;
-    padding-left: 0.75rem;
-    list-style: none;
-  }
-
-  .timeline li.success {
-    border-left-color: #0c9b37;
-  }
-
-  .timeline li.failed {
-    border-left-color: #d7263d;
-  }
-
-  .error {
-    background: #ffe5e8;
-    color: #8a1320;
-    border: 1px solid #f5b9bf;
-    border-radius: 0.4rem;
-    padding: 0.75rem;
-    margin: 1rem 0;
-  }
-
-  pre {
-    white-space: pre-wrap;
-    background: #f7f7f7;
-    padding: 1rem;
-    border-radius: 0.4rem;
-  }
-
-  @media (max-width: 720px) {
-    .search-box {
-      grid-template-columns: 1fr;
-    }
+  .browser-viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 </style>
