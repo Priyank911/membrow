@@ -62,7 +62,8 @@
     // If running in Electron, use native capturePage
     if (isElectron && window.membrowDesktop?.capturePage) {
       try {
-        return await window.membrowDesktop.capturePage();
+        const webContentsId = webviewEl?.getWebContentsId?.();
+        return await window.membrowDesktop.capturePage(webContentsId);
       } catch (err) {
         console.warn('Native capture failed, falling back to canvas:', err);
       }

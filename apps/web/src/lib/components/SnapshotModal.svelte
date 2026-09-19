@@ -24,8 +24,11 @@
   export let initialSummary: string = '';
   export let initialTags: string[] = [];
   export let bucketName: string = 'developer-research';
+  export let processing: boolean = false;
+  export let extracted: boolean = false;
 
   export let onSave: (item: Partial<KnowledgeItem>) => void;
+  export let onExtract: () => void;
   export let onClose: () => void;
 
   let title = '';
@@ -35,6 +38,7 @@
   let summary = '';
   let tags: string[] = [];
   let newTagInput = '';
+  let zoom = 1;
 
   $: if (show) {
     title = initialTitle;
@@ -77,6 +81,10 @@
       notes: ''
     });
   }
+
+  function adjustZoom(amount: number) {
+    zoom = Math.min(2, Math.max(0.5, Number((zoom + amount).toFixed(2))));
+  }
 </script>
 
 {#if show}
@@ -98,25 +106,54 @@
             <span class="subtext">Target: {bucketName}</span>
           </div>
         </div>
-        <button class="close-btn" on:click={onClose} aria-label="Close modal">
+        <button class="close-btn" on:click={onClose} aria-label="Close modal" disabled={processing}>
           <X size={15} strokeWidth={2} />
         </button>
       </div>
 
-      <!-- Body -->
+      <!-- Snapshot preview -->
+      <div class="capture-pane">
+          {#if imageSnapshot}
+            <button
+              type="button"
+              class="capture-stage"
+              on:click={onExtract}
+              disabled={processing || extracted}
+              aria-label={extracted ? 'Snapshot extracted' : 'Extract knowledge from snapshot'}
+            >
+              <img
+                src={imageSnapshot}
+                alt="Page snapshot"
+                style={`transform: scale(${zoom});`}
+              />
+            </button>
+            <div class="capture-toolbar">
+              <span class="capture-label"><ImageIcon size={12} /> CAPTURE VIEW</span>
+              <div class="zoom-controls">
+                <button type="button" on:click={() => adjustZoom(-0.1)} aria-label="Zoom out">−</button>
+                <span>{Math.round(zoom * 100)}%</span>
+                <button type="button" on:click={() => adjustZoom(0.1)} aria-label="Zoom in">+</button>
+              </div>
+            </div>
+          {/if}
+      </div>
+
+      <!-- Metadata form -->
       <div class="modal-body">
-        <!-- Snapshot Image Preview -->
-        {#if imageSnapshot}
-          <div class="snapshot-preview">
-            <img src={imageSnapshot} alt="Page snapshot" />
-            <div class="preview-badge">
-              <ImageIcon size={11} strokeWidth={2} />
-              <span>Snapshot Clip</span>
+        <div class="form-heading">
+          <span class="eyebrow">KNOWLEDGE ENTRY</span>
+          <span class="form-hint">Review the extracted signal before saving.</span>
+        </div>
+        {#if processing}
+          <div class="processing-banner" role="status">
+            <span class="processing-spinner"></span>
+            <div>
+              <strong>Processing snapshot...</strong>
+              <span>Extracting knowledge and confirming remote Memron storage.</span>
             </div>
           </div>
         {/if}
 
-        <!-- Category Selector -->
         <div class="field-group">
           <span class="field-label">Knowledge Category</span>
           <div class="category-pills">
@@ -126,6 +163,7 @@
                 type="button"
                 class="category-pill {category === cat.id ? 'selected' : ''}"
                 on:click={() => (category = cat.id)}
+                disabled={processing || !extracted}
               >
                 <svelte:component this={Icon} size={13} strokeWidth={1.8} />
                 <span>{cat.label}</span>
@@ -134,7 +172,6 @@
           </div>
         </div>
 
-        <!-- Title -->
         <div class="field-group">
           <label class="field-label" for="clip-title">Title</label>
           <input
@@ -143,10 +180,10 @@
             class="input-text"
             bind:value={title}
             placeholder="Paper / Tool / Model name"
+            disabled={processing || !extracted}
           />
         </div>
 
-        <!-- URL & Author (2-column) -->
         <div class="field-row">
           <div class="field-group flex-1">
             <label class="field-label" for="clip-url">
@@ -171,11 +208,11 @@
               class="input-text"
               bind:value={author}
               placeholder="@handle or team"
+              disabled={processing || !extracted}
             />
           </div>
         </div>
 
-        <!-- Extracted Summary / Insights -->
         <div class="field-group">
           <label class="field-label" for="clip-summary">Extracted Summary / Key Insights</label>
           <textarea
@@ -184,10 +221,10 @@
             rows="3"
             bind:value={summary}
             placeholder="Key developer takeaways, model details, or architecture highlights..."
+            disabled={processing || !extracted}
           ></textarea>
         </div>
 
-        <!-- Tags -->
         <div class="field-group">
           <span class="field-label">
             <Tag size={11} strokeWidth={1.8} /> Tags
@@ -206,6 +243,7 @@
               class="tag-input"
               placeholder="Add tag..."
               bind:value={newTagInput}
+              disabled={processing || !extracted}
               on:keydown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -219,10 +257,10 @@
 
       <!-- Footer -->
       <div class="modal-footer">
-        <button type="button" class="btn-secondary" on:click={onClose}>
+        <button type="button" class="btn-secondary" on:click={onClose} disabled={processing}>
           Cancel
         </button>
-        <button type="button" class="btn-primary" on:click={handleSave}>
+        <button type="button" class="btn-primary" on:click={handleSave} disabled={processing || !extracted}>
           <Check size={14} strokeWidth={2.2} />
           <span>Save to Memron Bucket</span>
         </button>
@@ -235,8 +273,8 @@
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.86);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -245,15 +283,15 @@
   }
 
   .modal-content {
-    background: #121215;
-    border: 1px solid #27272a;
-    border-radius: 0.75rem;
-    width: 92%;
-    max-width: 560px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+    background: #0b0b0c;
+    border: 1px solid #29292d;
+    border-radius: 16px;
+    width: min(1180px, calc(100vw - 48px));
+    height: min(720px, calc(100vh - 48px));
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.75);
     overflow: hidden;
   }
 
@@ -261,9 +299,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    grid-column: 1 / -1;
     padding: 0.85rem 1.1rem;
-    border-bottom: 1px solid #27272a;
-    background: #18181b;
+    border-bottom: 1px solid #242424;
+    background: #101012;
   }
 
   .title-group {
@@ -276,24 +315,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 0.375rem;
-    background: #27272a;
-    color: #fafafa;
+    width: 32px;
+    height: 32px;
+    border-radius: 0.55rem;
+    background: linear-gradient(145deg, #25252b, #17171a);
+    border: 1px solid #3a3a42;
+    color: #f4f4f5;
   }
 
   .header-text h2 {
     margin: 0;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: #fafafa;
     letter-spacing: -0.01em;
   }
 
   .header-text .subtext {
     font-size: 0.6875rem;
-    color: #a1a1aa;
+    color: #71717a;
     font-family: monospace;
   }
 
@@ -316,44 +356,165 @@
   }
 
   .modal-body {
-    padding: 1.1rem;
+    grid-column: 2;
+    grid-row: 2;
+    padding: 1.1rem 1.2rem;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: 0.75rem;
+    min-width: 0;
+    border-left: 1px solid #29292d;
   }
 
-  .snapshot-preview {
-    position: relative;
+  .form-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #202024;
+  }
+
+  .eyebrow {
+    color: #d4d4d8;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  .form-hint {
+    color: #52525b;
+    font-size: 0.65rem;
+  }
+
+  .processing-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #3f3f46;
     border-radius: 0.5rem;
-    overflow: hidden;
-    border: 1px solid #27272a;
-    max-height: 140px;
-    background: #09090b;
+    background: #18181b;
+    color: #e4e4e7;
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 4;
+    min-width: 290px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
   }
 
-  .snapshot-preview img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    object-position: top;
+  .processing-banner strong,
+  .processing-banner span {
     display: block;
   }
 
-  .preview-badge {
-    position: absolute;
-    bottom: 6px;
-    left: 8px;
+  .processing-banner strong {
+    font-size: 0.75rem;
+  }
+
+  .processing-banner div span {
+    margin-top: 0.15rem;
+    color: #a1a1aa;
+    font-size: 0.6875rem;
+  }
+
+  .processing-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #52525b;
+    border-top-color: #fafafa;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .capture-pane {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 1.1rem;
+    background: #070708;
+    min-width: 0;
+    border-right: 1px solid #29292d;
+  }
+
+  .capture-stage {
+    appearance: none;
+    width: 100%;
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    color: inherit;
+    padding: 0;
+    flex: 1;
+    min-height: 0;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    background: rgba(9, 9, 11, 0.85);
-    border: 1px solid #27272a;
-    border-radius: 0.25rem;
-    padding: 0.2rem 0.45rem;
-    font-size: 0.625rem;
-    font-weight: 500;
-    color: #d4d4d8;
+    justify-content: center;
+    overflow: auto;
+    background: #0d0d0f;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+  }
+
+  .capture-stage:hover:not(:disabled) {
+    border-color: #444;
+  }
+
+  .capture-stage:disabled {
+    cursor: default;
+  }
+
+  .capture-stage img {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+    transform-origin: center center;
+    transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .capture-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 0.1rem 0;
+    color: #777;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+  }
+
+  .capture-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #bbb;
+    letter-spacing: 0;
+  }
+
+  .zoom-controls button {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #2b2b2b;
+    border-radius: 6px;
+    background: #111;
+    color: #eee;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
   }
 
   .field-group {
@@ -501,9 +662,10 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0.5rem;
-    padding: 0.8rem 1.1rem;
-    border-top: 1px solid #27272a;
-    background: #18181b;
+    grid-column: 2;
+    grid-row: 3;
+    padding: 0.7rem 1.2rem 0.85rem;
+    background: #0b0b0c;
   }
 
   .btn-secondary {
@@ -554,10 +716,20 @@
   @media (max-width: 520px) {
     .modal-content {
       width: 95%;
-      max-height: 94vh;
+      height: 94vh;
+      grid-template-columns: 1fr;
+      grid-template-rows: min-content minmax(210px, 0.8fr) minmax(0, 1.4fr) auto;
+    }
+
+    .capture-pane {
+      grid-column: 1;
+      grid-row: 2;
+      padding: 0.85rem;
     }
 
     .modal-body {
+      grid-column: 1;
+      grid-row: 3;
       padding: 0.85rem;
       gap: 0.75rem;
     }
@@ -572,6 +744,8 @@
     }
 
     .modal-footer {
+      grid-column: 1;
+      grid-row: 4;
       padding: 0.65rem 0.85rem;
     }
   }

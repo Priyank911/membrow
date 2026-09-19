@@ -1,7 +1,7 @@
 {
-  "name": "Membrow - Developer Knowledge Browser",
+  "name": "Membrow",
   "short_name": "Membrow",
-  "description": "Lightweight developer browser with Memron MCP memory bucket and snapshot clipping.",
+  "description": "Windows-friendly agentic browser.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,9 +10,9 @@
   "theme_color": "#09090b",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "192x192 512x512 any",
-      "type": "image/svg+xml",
+      "src": "/membrow-logo.png",
+      "sizes": "1280x1280",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

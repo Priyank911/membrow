@@ -49,6 +49,24 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 }
 
+func TestCorsPreflight(t *testing.T) {
+	server := setupTestServer(t)
+	req := httptest.NewRequest(http.MethodOptions, "/search", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	req.Header.Set("Access-Control-Request-Headers", "content-type")
+	res, err := server.App().Test(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", res.StatusCode)
+	}
+	if got := res.Header.Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected CORS origin header, got %q", got)
+	}
+}
+
 func TestAgentRunEndpoint(t *testing.T) {
 	server := setupTestServer(t)
 	req := httptest.NewRequest(http.MethodPost, "/agent/run", strings.NewReader(`{"query":"go"}`))

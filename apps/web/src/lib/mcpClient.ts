@@ -7,6 +7,7 @@ const DEFAULT_CONFIG: McpConnectionConfig = {
   serverUrl: "http://localhost:3001/mcp",
   bucketName: "developer-research",
   status: "disconnected",
+  groqModel: "qwen/qwen3.6-27b",
   lastPingMs: undefined,
   lastSyncedAt: undefined,
 };
@@ -86,6 +87,7 @@ export const INITIAL_SEEDS: KnowledgeItem[] = [
 
 export class McpMemoryClient {
   private config: McpConnectionConfig;
+  private sessionId?: string;
 
   constructor() {
     this.config = this.loadConfig();
@@ -157,6 +159,10 @@ export class McpMemoryClient {
   }
 
   public async addItem(item: KnowledgeItem): Promise<KnowledgeItem> {
+    if (this.config.status !== "connected") {
+      throw new Error("Memron is not connected. Connect before saving a snapshot.");
+    }
+
     const items = this.getItems(this.config.bucketName);
     const existingIndex = items.findIndex((i) => i.url === item.url);
     if (existingIndex >= 0) {
@@ -164,20 +170,34 @@ export class McpMemoryClient {
     } else {
       items.unshift(item);
     }
-    this.saveItems(items, this.config.bucketName);
 
-    // If connected to MCP server or desktop bridge, dispatch
-    if (this.config.status === "connected") {
-      try {
-        await this.dispatchToMcp(item);
-        item.mcpSynced = true;
-        this.saveItems(items, this.config.bucketName);
-      } catch (err) {
-        console.warn("Failed to sync to remote MCP server:", err);
-      }
+    try {
+      await this.dispatchToMcp(item);
+      item.mcpSynced = true;
+      this.saveItems(items, this.config.bucketName);
+    } catch (err) {
+      console.warn("Failed to sync to remote MCP server:", err);
+      throw err;
     }
 
     return item;
+  }
+
+  public async extractImage(
+    imageData: string,
+  ): Promise<Partial<KnowledgeItem>> {
+    if (typeof window === "undefined" || !window.membrowDesktop?.extractImage) {
+      throw new Error("Image extraction is available in the desktop app");
+    }
+    const result = await window.membrowDesktop.extractImage(
+      imageData,
+      this.config.groqApiKey,
+      this.config.groqModel,
+    );
+    if (!result.success || !result.data) {
+      throw new Error(result.error || "Groq image extraction failed");
+    }
+    return result.data;
   }
 
   public deleteItem(id: string): void {
@@ -238,19 +258,28 @@ export class McpMemoryClient {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
 
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      };
+      if (this.config.apiKey) {
+        headers.Authorization = this.config.apiKey.startsWith("Bearer ")
+          ? this.config.apiKey
+          : `Bearer ${this.config.apiKey}`;
+      }
+
       const res = await fetch(`${this.config.serverUrl}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(this.config.apiKey
-            ? { Authorization: `Bearer ${this.config.apiKey}` }
-            : {}),
-        },
+        headers,
         body: JSON.stringify({
           jsonrpc: "2.0",
-          id: "ping-1",
-          method: "tools/list",
-          params: {},
+          id: "initialize-1",
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-06-18",
+            capabilities: {},
+            clientInfo: { name: "membrow", version: "0.1.0" },
+          },
         }),
         signal: controller.signal,
       });
@@ -258,17 +287,33 @@ export class McpMemoryClient {
 
       const latencyMs = Math.round(performance.now() - startTime);
 
-      if (res.ok) {
-        this.saveConfig({
-          status: "connected",
-          lastPingMs: latencyMs,
-          lastSyncedAt: new Date().toISOString(),
-          errorMessage: undefined,
-        });
-        return { success: true, latencyMs };
-      } else {
+      if (!res.ok) {
         throw new Error(`MCP Server HTTP ${res.status}: ${res.statusText}`);
       }
+
+      this.sessionId = res.headers.get("Mcp-Session-Id") || undefined;
+      const initializedHeaders = { ...headers };
+      if (this.sessionId) {
+        initializedHeaders["Mcp-Session-Id"] = this.sessionId;
+        initializedHeaders["MCP-Protocol-Version"] = "2025-06-18";
+      }
+      await fetch(`${this.config.serverUrl}`, {
+        method: "POST",
+        headers: initializedHeaders,
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "notifications/initialized",
+          params: {},
+        }),
+      });
+
+      this.saveConfig({
+        status: "connected",
+        lastPingMs: latencyMs,
+        lastSyncedAt: new Date().toISOString(),
+        errorMessage: undefined,
+      });
+      return { success: true, latencyMs };
     } catch (err: any) {
       this.saveConfig({
         status: "disconnected",
@@ -280,6 +325,7 @@ export class McpMemoryClient {
   }
 
   public disconnect(): void {
+    this.sessionId = undefined;
     this.saveConfig({
       status: "disconnected",
       lastPingMs: undefined,
@@ -292,8 +338,12 @@ export class McpMemoryClient {
       const res = await window.membrowDesktop.mcpStore(
         item,
         this.config.bucketName,
+        this.config,
       );
-      return res.success;
+      if (!res.success) {
+        throw new Error(res.error || "Memron rejected the memory");
+      }
+      return true;
     }
 
     const payload = {
@@ -301,35 +351,88 @@ export class McpMemoryClient {
       id: `store-${item.id}`,
       method: "tools/call",
       params: {
-        name: "store_memory",
+        name: "memory_store",
         arguments: {
-          bucket: this.config.bucketName,
+          bucket: "knowledge",
           title: item.title,
-          url: item.url,
-          author: item.author,
-          category: item.category,
-          content: item.summary,
+          content: [
+            item.summary,
+            `Source URL: ${item.url}`,
+            `Author: ${item.author}`,
+            `Category: ${item.category}`,
+            `Domain: ${item.domain}`,
+            item.notes ? `Notes: ${item.notes}` : "",
+            item.imageSnapshot ? "A full-page snapshot was used for extraction." : "",
+          ].filter(Boolean).join("\n"),
           tags: item.tags,
-          metadata: {
-            domain: item.domain,
-            notes: item.notes || "",
-            hasImage: !!item.imageSnapshot,
-          },
         },
       },
     };
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json, text/event-stream",
+      "MCP-Protocol-Version": "2025-06-18",
+    };
+    if (this.sessionId) headers["Mcp-Session-Id"] = this.sessionId;
+    if (this.config.apiKey) {
+      headers.Authorization = this.config.apiKey.startsWith("Bearer ")
+        ? this.config.apiKey
+        : `Bearer ${this.config.apiKey}`;
+    }
+
     const res = await fetch(this.config.serverUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(this.config.apiKey
-          ? { Authorization: `Bearer ${this.config.apiKey}` }
-          : {}),
-      },
+      headers,
       body: JSON.stringify(payload),
     });
-    return res.ok;
+    if (!res.ok) {
+      throw new Error(`Memron store_memory failed with HTTP ${res.status}`);
+    }
+    const response = (await parseMcpResponse(await res.text())) as {
+      error?: { message?: string };
+    };
+    if (response.error) {
+      throw new Error(response.error.message || "Memron rejected the memory");
+    }
+    if ((response as any).result?.isError) {
+      throw new Error(extractMcpResultText(response) || "Memron memory_store failed");
+    }
+    if (!(response as any).result) {
+      throw new Error("Memron returned no tool result");
+    }
+    return true;
+  }
+}
+
+function extractMcpResultText(response: any): string {
+  return (response.result?.content || [])
+    .map((part: any) => part.text || "")
+    .filter(Boolean)
+    .join(" ");
+}
+
+async function parseMcpResponse(text: string): Promise<unknown> {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const messages: unknown[] = [];
+    for (const block of trimmed.split(/\r?\n\r?\n/)) {
+      const data = block
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim())
+        .join("\n");
+      if (!data || data === "[DONE]") continue;
+      try {
+        messages.push(JSON.parse(data));
+      } catch {
+        throw new Error(`Memron returned invalid MCP response: ${data.slice(0, 120)}`);
+      }
+    }
+    if (!messages.length) throw new Error("Memron returned an empty MCP response");
+    return messages[messages.length - 1];
   }
 }
 

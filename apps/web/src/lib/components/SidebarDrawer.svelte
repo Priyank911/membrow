@@ -41,6 +41,8 @@
   let serverUrlInput = mcpConfig.serverUrl;
   let bucketNameInput = mcpConfig.bucketName;
   let apiKeyInput = mcpConfig.apiKey || '';
+  let groqApiKeyInput = mcpConfig.groqApiKey || '';
+  let groqModelInput = mcpConfig.groqModel || 'qwen/qwen3.6-27b';
   let connecting = false;
 
   $: serverUrlInput = mcpConfig.serverUrl;
@@ -75,7 +77,9 @@
     onSaveConfig({
       serverUrl: serverUrlInput.trim(),
       bucketName: bucketNameInput.trim(),
-      apiKey: apiKeyInput.trim() || undefined
+      apiKey: apiKeyInput.trim() || undefined,
+      groqApiKey: groqApiKeyInput.trim() || undefined,
+      groqModel: groqModelInput.trim() || 'qwen/qwen3.6-27b'
     });
     try {
       await onConnectMcp();
@@ -217,6 +221,29 @@ ${item.summary}
                 />
               </div>
 
+              <div class="form-group">
+                <label for="groq-api-key" class="form-label">Groq Vision API Key</label>
+                <input
+                  id="groq-api-key"
+                  type="password"
+                  class="form-input"
+                  bind:value={groqApiKeyInput}
+                  placeholder="gsk_..."
+                />
+                <span class="form-hint">Used to extract knowledge from the full screenshot</span>
+              </div>
+
+              <div class="form-group">
+                <label for="groq-model" class="form-label">Groq Extraction Model</label>
+                <input
+                  id="groq-model"
+                  type="text"
+                  class="form-input monospace"
+                  bind:value={groqModelInput}
+                  placeholder="qwen/qwen3.6-27b"
+                />
+              </div>
+
               <div class="actions-row">
                 <button
                   type="button"
@@ -244,7 +271,7 @@ ${item.summary}
             <div class="mcp-tools-box">
               <span class="tools-heading">Exposed MCP Tools</span>
               <div class="tool-item">
-                <code>store_memory</code>
+                <code>memory_store</code>
                 <span>Save research snapshot & metadata</span>
               </div>
               <div class="tool-item">

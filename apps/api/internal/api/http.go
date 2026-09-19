@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 
 	"github.com/Priyank911/membrow/apps/api/internal/agent"
 	"github.com/Priyank911/membrow/apps/api/internal/config"
@@ -49,6 +50,11 @@ func NewServer(cfg config.Config, logger *slog.Logger, provider search.Provider,
 		},
 	})
 
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:5173",
+		AllowHeaders: "Origin, Content-Type, Accept, X-Request-Id",
+		AllowMethods: "GET, POST, OPTIONS",
+	}))
 	app.Use(observability.RequestContextMiddleware())
 
 	api := &Server{app: app, agentSvc: agentSvc, cfg: cfg}

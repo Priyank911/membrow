@@ -167,7 +167,7 @@
     justify-content: space-between;
     gap: 0.6rem;
     padding: 0.4rem 0.65rem;
-    background: #121215;
+    background: #18181b;
     border-bottom: 1px solid #27272a;
     position: relative;
     user-select: none;

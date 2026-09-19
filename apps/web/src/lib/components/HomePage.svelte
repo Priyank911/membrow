@@ -2,19 +2,10 @@
   import type { KnowledgeCategory, KnowledgeItem } from '../types';
   import {
     Search,
-    Globe,
-    BookOpen,
-    Wrench,
-    Bot,
-    Boxes,
-    Terminal,
-    Code,
     Database,
     ArrowUpRight,
     Camera,
-    ShieldCheck,
-    Cpu,
-    Sparkles
+    ShieldCheck
   } from '@lucide/svelte';
 
   export let onNavigate: (url: string) => void;
@@ -24,57 +15,6 @@
   export let bucketName: string = 'developer-research';
 
   let searchQuery = '';
-
-  const developerHubs = [
-    {
-      name: 'X (Twitter)',
-      url: 'https://x.com',
-      handle: 'x.com',
-      desc: 'Real-time AI research releases, developer threads, and agent architectures.',
-      category: 'Agent',
-      icon: Bot
-    },
-    {
-      name: 'GitHub Trending',
-      url: 'https://github.com/trending',
-      handle: 'github.com',
-      desc: 'Trending open-source agent frameworks, developer CLIs, and MCP servers.',
-      category: 'Tool',
-      icon: Code
-    },
-    {
-      name: 'ArXiv (cs.AI / cs.LG)',
-      url: 'https://arxiv.org/list/cs.AI/recent',
-      handle: 'arxiv.org',
-      desc: 'Academic preprints, neural architectures, reasoning, and benchmarks.',
-      category: 'Research',
-      icon: BookOpen
-    },
-    {
-      name: 'Hugging Face',
-      url: 'https://huggingface.co/models',
-      handle: 'huggingface.co',
-      desc: 'Open weights, quantizations, vision models, and checkpoints.',
-      category: 'Model',
-      icon: Boxes
-    },
-    {
-      name: 'Reddit / r/LocalLLaMA',
-      url: 'https://reddit.com/r/LocalLLaMA',
-      handle: 'reddit.com',
-      desc: 'Community benchmarks, fine-tuning setups, and developer skills.',
-      category: 'Skill',
-      icon: Terminal
-    },
-    {
-      name: 'DuckDuckGo Search',
-      url: 'https://duckduckgo.com',
-      handle: 'duckduckgo.com',
-      desc: 'Search the open web without trackers.',
-      category: 'Search',
-      icon: Search
-    }
-  ];
 
   function handleSearchSubmit() {
     const trimmed = searchQuery.trim();
@@ -97,33 +37,30 @@
   <div class="home-wrapper">
     <!-- Hero Brand Section -->
     <header class="home-hero">
-      <!-- Membrow Custom Geometric Logo -->
-      <div class="brand-logo-wrap">
-        <svg class="membrow-logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="4" y="4" width="40" height="40" rx="12" fill="#121215" stroke="#27272a" stroke-width="2" />
-          <path d="M14 24L24 14L34 24L24 34L14 24Z" stroke="#fafafa" stroke-width="2" stroke-linejoin="round" />
-          <circle cx="24" cy="24" r="4" fill="#fafafa" />
-          <path d="M24 14V8M24 40V34M14 24H8M40 24H34" stroke="#52525b" stroke-width="2" stroke-linecap="round" />
-        </svg>
-      </div>
-
-      <div class="brand-titles">
-        <div class="badge-row">
-          <span class="hero-badge">Desktop Knowledge Browser</span>
-          <span class="hero-badge mono">MCP v1.0</span>
+      <div class="hero-identity">
+        <div class="brand-logo-wrap">
+          <img class="membrow-logo" src="/membrow-logo-transparent.png" alt="Membrow robot globe logo" />
         </div>
-        <h1 class="brand-name">Membrow</h1>
+
+        <div class="brand-titles">
+          <div class="badge-row">
+            <span class="hero-badge">Desktop Knowledge Browser</span>
+            <span class="hero-badge mono">MCP v1.0</span>
+          </div>
+          <h1 class="brand-name">Membrow</h1>
+          <p class="hero-kicker">A sharper way to gather what matters.</p>
+        </div>
       </div>
 
-      <!-- Aim & Mission -->
       <div class="aim-card">
         <div class="aim-title-bar">
           <ShieldCheck size={14} strokeWidth={1.8} class="aim-icon" />
-          <span class="aim-label">Membrow Aim & Mission</span>
+          <span class="aim-label">01 / The mission</span>
         </div>
         <p class="aim-text">
-          A lightweight developer browser engineered to browse the open web, clip insights, and synthesize intelligence across <strong>Research</strong>, <strong>Tools</strong>, <strong>Agents</strong>, <strong>Models</strong>, and <strong>Skills</strong> into your persistent <strong>Memron MCP Memory Bucket</strong>.
+          Browse the open web, clip the signal, and turn scattered developer intelligence into a persistent <strong>Memron MCP Memory Bucket</strong>.
         </p>
+        <div class="aim-footer"><span>RESEARCH · TOOLS · AGENTS · MODELS · SKILLS</span></div>
       </div>
     </header>
 
@@ -178,44 +115,6 @@
       </button>
     </section>
 
-    <!-- Developer Intelligence Launchpad -->
-    <section class="launchpad-section">
-      <div class="section-header">
-        <span class="section-title">Developer Intelligence Launchpad</span>
-        <span class="section-hint">Click any feed or enter URL above</span>
-      </div>
-
-      <div class="hubs-grid">
-        {#each developerHubs as hub}
-          {@const Icon = hub.icon}
-          <div
-            class="hub-tile"
-            on:click={() => onNavigate(hub.url)}
-            role="button"
-            tabindex="0"
-            on:keydown={(e) => e.key === 'Enter' && onNavigate(hub.url)}
-          >
-            <div class="tile-top">
-              <div class="tile-icon-box">
-                <svelte:component this={Icon} size={16} strokeWidth={1.8} />
-              </div>
-              <span class="tile-category-tag">{hub.category}</span>
-            </div>
-
-            <h3 class="tile-title">{hub.name}</h3>
-            <p class="tile-desc">{hub.desc}</p>
-
-            <div class="tile-footer">
-              <span class="tile-handle mono">{hub.handle}</span>
-              <span class="tile-arrow">
-                <ArrowUpRight size={13} strokeWidth={2} />
-              </span>
-            </div>
-          </div>
-        {/each}
-      </div>
-    </section>
-
     <!-- Workflow Tip -->
     <footer class="home-footer-tip">
       <div class="tip-content">
@@ -227,52 +126,75 @@
 </div>
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
+
   .home-container {
     width: 100%;
     height: 100%;
     overflow-y: auto;
-    background: #09090b;
+    background: #000000;
     color: #fafafa;
-    padding: 2.5rem 1.5rem;
+    padding: clamp(1.25rem, 4vw, 3.5rem) clamp(1rem, 4vw, 4rem);
     display: flex;
     justify-content: center;
     user-select: none;
+    font-family: 'Pixelify Sans', 'Segoe UI', sans-serif;
   }
 
   .home-wrapper {
     width: 100%;
-    max-width: 820px;
+    max-width: 1180px;
     display: flex;
     flex-direction: column;
-    gap: 1.75rem;
+    gap: 1.35rem;
   }
 
   /* Hero Section */
   .home-hero {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr);
+    align-items: stretch;
+    gap: 0.85rem;
+    position: relative;
+    padding: 0.5rem 0 1.35rem;
+  }
+
+  .home-hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 4.5rem;
+    height: 2px;
+    background: #fafafa;
+  }
+
+  .hero-identity {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 1.1rem;
+    justify-content: space-between;
+    gap: 0.75rem;
   }
 
   .brand-logo-wrap {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .membrow-logo {
-    width: 54px;
-    height: 54px;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: 0;
+    filter: none;
   }
 
   .brand-titles {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.35rem;
+    align-items: flex-start;
+    gap: 0.3rem;
   }
 
   .badge-row {
@@ -282,36 +204,46 @@
   }
 
   .hero-badge {
-    font-size: 0.6875rem;
+    font-size: 0.6rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: #a1a1aa;
-    background: #18181b;
-    border: 1px solid #27272a;
-    padding: 0.2rem 0.55rem;
+    background: #0d0d0f;
+    border: 1px solid #35353b;
+    padding: 0.18rem 0.48rem;
     border-radius: 9999px;
+    white-space: nowrap;
   }
 
   .brand-name {
     margin: 0;
-    font-size: 2.25rem;
+    font-size: clamp(2.6rem, 5vw, 3.75rem);
     font-weight: 700;
-    letter-spacing: -0.03em;
+    line-height: 0.9;
+    letter-spacing: -0.075em;
     color: #fafafa;
   }
 
-  /* Aim Card */
+  .hero-kicker {
+    margin: 0.15rem 0 0;
+    color: #71717a;
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+  }
+
   .aim-card {
-    background: #121215;
+    background: #0a0a0b;
     border: 1px solid #27272a;
     border-radius: 0.75rem;
-    padding: 0.9rem 1.25rem;
-    max-width: 640px;
+    padding: 1rem 1.15rem;
+    min-height: 132px;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    justify-content: space-between;
+    gap: 0.55rem;
     text-align: left;
+    box-shadow: 12px 12px 0 #080808;
   }
 
   .aim-title-bar {
@@ -322,27 +254,37 @@
   }
 
   .aim-label {
-    font-size: 0.6875rem;
+    font-size: 0.62rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #a1a1aa;
+    color: #d4d4d8;
   }
 
   .aim-text {
     margin: 0;
-    font-size: 0.8125rem;
+    max-width: 32rem;
+    font-size: clamp(0.88rem, 1.3vw, 1rem);
     color: #d4d4d8;
-    line-height: 1.5;
+    line-height: 1.35;
   }
 
   .aim-text strong {
     color: #fafafa;
   }
 
+  .aim-footer {
+    border-top: 1px solid #1f1f23;
+    padding-top: 0.5rem;
+    color: #52525b;
+    font: 600 0.52rem/1.2 'Pixelify Sans', monospace;
+    letter-spacing: 0.08em;
+  }
+
   /* Search Section */
   .home-search-section {
     width: 100%;
+    max-width: 820px;
   }
 
   .home-search-box {
@@ -352,7 +294,7 @@
     border: 1px solid #27272a;
     border-radius: 0.75rem;
     padding: 0.35rem 0.65rem 0.35rem 0.9rem;
-    height: 48px;
+    height: 44px;
     transition: all 0.14s ease;
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
   }
@@ -376,7 +318,7 @@
     border: none;
     background: none;
     color: #fafafa;
-    font-size: 0.9375rem;
+    font-size: 0.82rem;
     outline: none;
     font-family: inherit;
     letter-spacing: -0.01em;
@@ -391,8 +333,8 @@
     color: #09090b;
     border: none;
     border-radius: 0.45rem;
-    padding: 0.45rem 1rem;
-    font-size: 0.8125rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.72rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s ease;
@@ -417,7 +359,8 @@
     background: #121215;
     border: 1px solid #27272a;
     border-radius: 0.65rem;
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.8rem;
+    max-width: 820px;
   }
 
   .banner-left {
@@ -430,8 +373,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 0.375rem;
     background: #18181b;
     border: 1px solid #27272a;
@@ -451,7 +394,7 @@
   }
 
   .bucket-title {
-    font-size: 0.8125rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: #fafafa;
     font-family: monospace;
@@ -482,7 +425,7 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    font-size: 0.6875rem;
+    font-size: 0.6rem;
     color: #71717a;
   }
 
@@ -497,9 +440,9 @@
     background: #18181b;
     border: 1px solid #27272a;
     border-radius: 0.375rem;
-    padding: 0.35rem 0.65rem;
+    padding: 0.3rem 0.55rem;
     color: #a1a1aa;
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.12s ease;
@@ -512,137 +455,24 @@
     color: #fafafa;
   }
 
-  /* Launchpad Grid */
-  .launchpad-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-  }
-
-  .section-title {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #a1a1aa;
-  }
-
-  .section-hint {
-    font-size: 0.6875rem;
-    color: #71717a;
-  }
-
-  .hubs-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-  }
-
-  .hub-tile {
-    background: #121215;
-    border: 1px solid #27272a;
-    border-radius: 0.5rem;
-    padding: 0.85rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    cursor: pointer;
-    transition: all 0.14s ease;
-  }
-
-  .hub-tile:hover {
-    background: #18181b;
-    border-color: #3f3f46;
-    transform: translateY(-1px);
-  }
-
-  .tile-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .tile-icon-box {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 0.375rem;
-    background: #18181b;
-    border: 1px solid #27272a;
-    color: #fafafa;
-  }
-
-  .tile-category-tag {
-    font-size: 0.625rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #a1a1aa;
-    background: #18181b;
-    padding: 0.15rem 0.4rem;
-    border-radius: 0.25rem;
-    letter-spacing: 0.03em;
-  }
-
-  .tile-title {
-    margin: 0;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #fafafa;
-  }
-
-  .tile-desc {
-    margin: 0;
-    font-size: 0.6875rem;
-    color: #71717a;
-    line-height: 1.4;
-    flex: 1;
-  }
-
-  .tile-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 0.35rem;
-    padding-top: 0.35rem;
-    border-top: 1px solid #1c1c21;
-  }
-
-  .tile-handle {
-    font-size: 0.6875rem;
-    color: #52525b;
-  }
-
-  .tile-arrow {
-    color: #71717a;
-    display: flex;
-    align-items: center;
-  }
-
   /* Tip footer */
   .home-footer-tip {
     display: flex;
     justify-content: center;
     padding-top: 0.5rem;
+    justify-content: flex-start;
   }
 
   .tip-content {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: #71717a;
     background: #121215;
     border: 1px solid #27272a;
     border-radius: 0.5rem;
-    padding: 0.45rem 0.85rem;
+    padding: 0.35rem 0.65rem;
   }
 
   .tip-content strong {
@@ -655,8 +485,8 @@
 
   /* Mobile Responsive adjustments */
   @media (max-width: 768px) {
-    .hubs-grid {
-      grid-template-columns: repeat(2, 1fr);
+    .home-hero {
+      grid-template-columns: 1fr;
     }
 
     .bucket-status-banner {
@@ -678,12 +508,32 @@
       padding: 1.5rem 1rem;
     }
 
-    .hubs-grid {
+    .home-hero {
       grid-template-columns: 1fr;
+      padding-top: 0.5rem;
+    }
+
+    .hero-identity {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-logo-wrap {
+      flex-shrink: 0;
+    }
+
+    .membrow-logo {
+      width: 52px;
+      height: 52px;
     }
 
     .brand-name {
-      font-size: 1.75rem;
+      font-size: 2.1rem;
+    }
+
+    .hero-kicker {
+      font-size: 0.7rem;
     }
 
     .home-search-box {

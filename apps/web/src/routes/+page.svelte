@@ -8,7 +8,6 @@
     ToastMessage
   } from '$lib/types';
   import { mcpClient } from '$lib/mcpClient';
-  import { extractPageMetadata } from '$lib/extractor';
 
   import BrowserChrome from '$lib/components/BrowserChrome.svelte';
   import TabBar from '$lib/components/TabBar.svelte';
@@ -50,6 +49,8 @@
   let snapshotCategory: KnowledgeCategory = 'research';
   let snapshotSummary: string = '';
   let snapshotTags: string[] = [];
+  let snapshotProcessing = false;
+  let snapshotExtracted = false;
 
   // Webview reference
   let webviewContainerRef: WebViewContainer;
@@ -179,7 +180,7 @@
   // Snapshot & Clip Workflow
   async function handleTriggerSnapshot() {
     try {
-      showToast('Clipping visual snapshot & extracting metadata...', 'info');
+      showToast('Snapshot captured. Click the image to extract it.', 'info');
 
       // 1. Capture visual image
       let imgData = '';
@@ -187,16 +188,14 @@
         imgData = await webviewContainerRef.captureScreenshot();
       }
 
-      // 2. Extract structured metadata
-      const extracted = extractPageMetadata(activeTab.url, activeTab.title, '');
-
       snapshotImage = imgData;
-      snapshotTitle = extracted.title;
-      snapshotUrl = extracted.url;
-      snapshotAuthor = extracted.author;
-      snapshotCategory = extracted.category;
-      snapshotSummary = extracted.summary;
-      snapshotTags = extracted.tags;
+      snapshotTitle = '';
+      snapshotUrl = activeTab.url;
+      snapshotAuthor = '';
+      snapshotCategory = 'research';
+      snapshotSummary = '';
+      snapshotTags = [];
+      snapshotExtracted = false;
 
       showSnapshotModal = true;
     } catch (err: any) {
@@ -204,7 +203,43 @@
     }
   }
 
+  async function handleExtractSnapshot() {
+    if (snapshotExtracted || snapshotProcessing) return;
+    snapshotProcessing = true;
+    try {
+      if (!mcpConfig.groqApiKey) {
+        throw new Error('Add a Groq Vision API key in MCP Connection settings first');
+      }
+      const visionData = await mcpClient.extractImage(snapshotImage);
+      snapshotTitle = visionData.title || snapshotTitle;
+      snapshotAuthor = visionData.author || snapshotAuthor;
+      snapshotCategory = visionData.category || snapshotCategory;
+      snapshotSummary = visionData.summary || snapshotSummary;
+      snapshotTags = visionData.tags?.length ? visionData.tags : snapshotTags;
+      snapshotExtracted = true;
+      showToast('Image extraction complete. Review and save to Memron.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Snapshot failed', 'error');
+    } finally {
+      snapshotProcessing = false;
+    }
+  }
+
   async function handleSaveSnapshot(data: Partial<KnowledgeItem>) {
+    snapshotProcessing = true;
+    try {
+      const liveConfig = mcpClient.getConfig();
+      if (liveConfig.status !== 'connected') {
+        showToast('Reconnecting to Memron...', 'info');
+        const connection = await mcpClient.connect();
+        mcpConfig = mcpClient.getConfig();
+        if (!connection.success) {
+          throw new Error(connection.error || 'Connect to Memron before saving a snapshot.');
+        }
+      } else {
+        mcpConfig = liveConfig;
+      }
+
     const newItem: KnowledgeItem = {
       id: `item-${Date.now()}`,
       title: data.title || activeTab.title,
@@ -220,11 +255,15 @@
       notes: data.notes || ''
     };
 
-    await mcpClient.addItem(newItem);
-    knowledgeItems = mcpClient.getItems();
-    showSnapshotModal = false;
-
-    showToast(`Stored in Memron Bucket [${newItem.category}]`, 'success');
+      await mcpClient.addItem(newItem);
+      knowledgeItems = mcpClient.getItems();
+      showSnapshotModal = false;
+      showToast(`Stored in Memron Bucket [${newItem.category}]`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Memron storage failed', 'error');
+    } finally {
+      snapshotProcessing = false;
+    }
   }
 
   // MCP Sidebar actions
@@ -322,6 +361,9 @@
     initialCategory={snapshotCategory}
     initialSummary={snapshotSummary}
     initialTags={snapshotTags}
+    processing={snapshotProcessing}
+    extracted={snapshotExtracted}
+    onExtract={handleExtractSnapshot}
     bucketName={mcpConfig.bucketName}
     onSave={handleSaveSnapshot}
     onClose={() => (showSnapshotModal = false)}

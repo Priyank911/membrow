@@ -1,6 +1,8 @@
 {
   "name": "membrow-web",
   "version": "0.1.0",
+  "description": "Membrow - Developer Knowledge Browser",
+  "author": "Membrow Developers",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -10,6 +12,7 @@
     "electron:dev": "electron .",
     "start": "electron .",
     "build": "vite build",
+    "electron:pack": "npm run build && electron-builder",
     "cap:sync": "npm run build && cap sync android",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -24,6 +27,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@types/node": "^22.10.2",
     "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
     "lucide-svelte": "^1.0.1",
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.2",
@@ -36,5 +40,36 @@
     "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2"
+  },
+  "build": {
+    "appId": "com.membrow.app",
+    "productName": "Membrow",
+    "directories": {
+      "output": "release-final",
+      "buildResources": "electron-builder"
+    },
+    "files": [
+      "electron/**/*",
+      "build/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "static/membrow-logo.png",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "include": "custom-installer.nsh",
+      "script": "installer.nsi",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Membrow",
+      "deleteAppDataOnUninstall": true
+    }
   }
 }

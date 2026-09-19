@@ -1,42 +1,45 @@
 # Membrow
 
-Membrow is a lightweight, robust, Windows-friendly agentic browser/search scaffold that demonstrates a production-grade workflow: **plan → search → fetch → extract → synthesize**.
+Membrow is a lightweight, developer-focused desktop browser application designed for rapid research capture and memory synthesis. It integrates directly with **Memron** via the **Model Context Protocol (MCP)** to clip, extract, and ground developer intelligence (papers, tools, models, agents, and skills) into persistent memory buckets.
 
-## Project overview
+## Key Features
 
-This initial scaffold focuses on:
-
-- clear monorepo module boundaries
-- resilient API behavior with typed errors and retries
-- observable run traces for each workflow stage
-- local-first defaults (mock search provider + SQLite) while keeping migration seams for Postgres/Redis
+- **Actual Desktop Browser**: Runs natively via Electron with an embedded Chromium guest web engine (`<webview>`) to browse any site (X/Twitter, GitHub, ArXiv, Hugging Face, Reddit, Google) without `X-Frame-Options` or CORS restrictions.
+- **Top-Corner Snapshot & Clip**: Compact, minimalist one-click button to capture high-res page snapshots and automatically extract structured metadata (Title, Platform, Author, Category, Takeaways, Tags).
+- **5 Developer Knowledge Categories**:
+  - `Research`: Academic preprints, architectures, ablation studies, and benchmarks.
+  - `Tools`: Developer utilities, CLIs, libraries, and open-source packages.
+  - `Agents`: Autonomous cognitive frameworks, multi-agent orchestrators, and workflows.
+  - `Models`: Open weights, LLMs, vision models, quantizations, and checkpoints.
+  - `Skills`: Antigravity skills, function schemas, and system prompt specifications.
+- **Hamburger Sidebar Drawer**:
+  - **Memron MCP Connection**: Connect to Memron MCP servers via standard JSON-RPC protocol (`tools/call` for `store_memory`, `search_memory`, `list_buckets`) with live connection badges and latency counters.
+  - **Knowledge Data Bucket**: Full searchable knowledge feed with category filters, Markdown/JSON export, and tab integration.
+- **Anti-AI Minimalist Aesthetic**:
+  - Dark slate monochromatic palette with high-contrast precision typography.
+  - **Strictly zero emojis** across all interfaces.
+  - Crisp SVG vector iconography from `@lucide/svelte`.
+- **Omnibox & Tab Strip**: Multi-tab browsing, direct URL navigation, DuckDuckGo search integration, and full history controls (Back, Forward, Reload, Home).
 
 ## Architecture
 
 ```
 membrow/
 ├─ apps/
-│  ├─ api/                   # Go + Fiber backend
-│  │  ├─ cmd/api             # API entrypoint
-│  │  └─ internal/
-│  │     ├─ agent            # orchestration + run service
-│  │     ├─ api              # routes + HTTP middleware integration
-│  │     ├─ config           # env-driven config
-│  │     ├─ errors           # typed errors + mapping
-│  │     ├─ observability    # structured logging + request IDs
-│  │     ├─ search           # provider abstraction + mock/serpapi
-│  │     ├─ fetch            # content retrieval abstraction
-│  │     ├─ extract          # normalization pipeline
-│  │     ├─ synth            # response assembly
-│  │     ├─ tools            # retry/backoff helper
-│  │     └─ storage          # SQLite run store interface/impl
-│  └─ web/                   # SvelteKit frontend
-├─ docs/
-│  ├─ ARCHITECTURE.md
-│  ├─ ERROR_HANDLING.md
-│  └─ AGENT_WORKFLOW.md
-├─ docker-compose.yml
-└─ scripts/                  # cross-platform dev helpers
+│  ├─ web/                       # Desktop Browser Shell (Svelte 5 + Vite + Electron)
+│  │  ├─ electron/               # Native Electron main process & IPC preload bridge
+│  │  │  ├─ main.cjs             # Window management, webview guest host, native capturePage()
+│  │  │  └─ preload.cjs          # Typed membrowDesktop bridge
+│  │  └─ src/
+│  │     ├─ lib/components/      # BrowserChrome, TabBar, WebViewContainer, SidebarDrawer, SnapshotModal
+│  │     ├─ lib/mcpClient.ts     # Memron MCP Client & Persistent Knowledge Bucket
+│  │     ├─ lib/extractor.ts     # Auto-classification & metadata extraction pipeline
+│  │     └─ routes/+page.svelte  # Unified browser shell
+│  └─ api/                       # Go + Fiber backend (optional worker service)
+├─ docs/                         # Architecture, workflow, and error handling reference
+└─ scripts/
+   ├─ desktop.ps1                # One-click desktop launcher (PowerShell)
+   └─ dev.ps1                    # Multi-process dev helper
 ```
 
 ## API endpoints

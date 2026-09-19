@@ -141,5 +141,41 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Go build and test artifacts
+*.exe
+*.test
+*.out
+
+# Android signing and service credentials
+*.jks
+*.keystore
+google-services.json
+
+# Local Capacitor and Android output (the native project remains tracked)
+apps/web/android/.gradle/
+apps/web/android/.idea/
+apps/web/android/**/build/
+apps/web/android/local.properties
+apps/web/android/capacitor-cordova-android-plugins/
+apps/web/android/app/src/main/assets/
+apps/web/android/app/src/main/res/xml/config.xml
+
+# Local generated web and API data
 apps/api/data/
 apps/web/build/
+
+# Electron packaging outputs (installer and trial builds)
+apps/web/dist-electron*/
+apps/web/release*/

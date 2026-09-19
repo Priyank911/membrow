@@ -77,6 +77,8 @@ export interface McpConnectionConfig {
   serverUrl: string;
   bucketName: string;
   apiKey?: string;
+  groqApiKey?: string;
+  groqModel?: string;
   status: McpConnectionStatus;
   lastPingMs?: number;
   lastSyncedAt?: string;
@@ -85,17 +87,20 @@ export interface McpConnectionConfig {
 
 export interface DesktopBridge {
   isDesktop: boolean;
-  capturePage: () => Promise<string>;
+  capturePage: (webContentsId?: number) => Promise<string>;
+  extractImage: (
+    imageData: string,
+    apiKey?: string,
+    model?: string,
+  ) => Promise<{ success: boolean; data?: Partial<KnowledgeItem>; error?: string }>;
   mcpConnect: (
     config: McpConnectionConfig,
   ) => Promise<{ success: boolean; latencyMs?: number; error?: string }>;
   mcpStore: (
     item: KnowledgeItem,
     bucket: string,
+    config: McpConnectionConfig,
   ) => Promise<{ success: boolean; id: string; error?: string }>;
-  mcpList: (
-    bucket: string,
-  ) => Promise<{ success: boolean; items: KnowledgeItem[]; error?: string }>;
 }
 
 declare global {
