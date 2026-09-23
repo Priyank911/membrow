@@ -24,12 +24,20 @@
   export let onBack: () => void;
   export let onForward: () => void;
   export let onReload: () => void;
-  export let onHome: () => void;
   export let onSnapshot: () => void;
 
   let inputUrl = '';
 
-  $: inputUrl = url === 'membrow://home' ? '' : url;
+  $: inputUrl = url === 'membrow://home' ? '' : isSearchUrl(url) ? 'Search results' : url;
+
+  function isSearchUrl(value: string): boolean {
+    try {
+      const parsed = new URL(value);
+      return parsed.hostname === 'duckduckgo.com' || parsed.hostname.endsWith('.duckduckgo.com');
+    } catch {
+      return false;
+    }
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
@@ -53,20 +61,8 @@
 </script>
 
 <header class="browser-chrome">
-  <!-- Left section: Hamburger & Navigation buttons -->
+  <!-- Left section: Navigation buttons -->
   <div class="nav-controls">
-    <button
-      class="icon-btn hamburger-btn"
-      on:click={onToggleDrawer}
-      title="Menu & Memron MCP Memory"
-      aria-label="Toggle Menu"
-    >
-      <Menu size={16} strokeWidth={1.8} />
-      {#if isMcpConnected}
-        <span class="mcp-dot-badge" title="Memron MCP Connected"></span>
-      {/if}
-    </button>
-
     <div class="history-controls">
       <button
         class="icon-btn"
@@ -98,15 +94,6 @@
           <RotateCw size={14} strokeWidth={1.8} />
         </span>
       </button>
-
-      <button
-        class="icon-btn"
-        on:click={onHome}
-        title="Home"
-        aria-label="Home"
-      >
-        <Home size={14} strokeWidth={1.8} />
-      </button>
     </div>
   </div>
 
@@ -127,7 +114,7 @@
         class="omnibox-input"
         bind:value={inputUrl}
         on:keydown={handleKeydown}
-        placeholder="Enter URL or search DuckDuckGo..."
+        placeholder="Enter a URL or search the web..."
         spellcheck="false"
       />
       {#if loading}
@@ -136,15 +123,15 @@
     </div>
   </div>
 
-  <!-- Right section: Compact Snapshot Button & Quick MCP Badge -->
+  <!-- Right section: Memory, capture, and menu utilities -->
   <div class="action-controls">
     <button
       class="compact-badge-btn"
       on:click={onToggleDrawer}
       title={isMcpConnected ? `Memron MCP Connected: ${mcpBucketName}` : `Local Storage Bucket: ${mcpBucketName} (MCP Offline)`}
+      aria-label={isMcpConnected ? `Memron MCP Connected: ${mcpBucketName}` : `Local Storage Bucket: ${mcpBucketName} (MCP Offline)`}
     >
       <Database size={12} strokeWidth={1.75} />
-      <span class="badge-text">{mcpBucketName}</span>
       <span class="status-indicator {isMcpConnected ? 'online' : 'offline'}"></span>
     </button>
 
@@ -155,7 +142,18 @@
       aria-label="Snapshot & Clip"
     >
       <Camera size={14} strokeWidth={2} />
-      <span class="btn-label">Clip</span>
+    </button>
+
+    <button
+      class="icon-btn hamburger-btn"
+      on:click={onToggleDrawer}
+      title="Menu & Memron MCP Memory"
+      aria-label="Toggle Menu"
+    >
+      <Menu size={16} strokeWidth={1.8} />
+      {#if isMcpConnected}
+        <span class="mcp-dot-badge" title="Memron MCP Connected"></span>
+      {/if}
     </button>
   </div>
 </header>
@@ -165,7 +163,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.6rem;
+    gap: 0.55rem;
     padding: 0.4rem 0.65rem;
     background: #18181b;
     border-bottom: 1px solid #27272a;
@@ -176,7 +174,7 @@
   .nav-controls {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.15rem;
     flex-shrink: 0;
   }
 
@@ -214,13 +212,14 @@
 
   .hamburger-btn {
     position: relative;
-    color: #fafafa;
-    border-color: #27272a;
-    background: #18181b;
+    color: #d4d4d8;
+    border-color: #3f3f46;
+    background: #27272a;
   }
 
   .hamburger-btn:hover {
-    background: #27272a;
+    background: #3f3f46;
+    border-color: #52525b;
   }
 
   .mcp-dot-badge {
@@ -236,8 +235,7 @@
 
   .omnibox-container {
     flex: 1;
-    max-width: 680px;
-    margin: 0 auto;
+    min-width: 0;
     position: relative;
   }
 
@@ -301,21 +299,22 @@
   .action-controls {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.3rem;
     flex-shrink: 0;
   }
 
   .compact-badge-btn {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    position: relative;
+    width: 28px;
+    height: 28px;
     background: #18181b;
     border: 1px solid #27272a;
     border-radius: 0.375rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0;
     color: #a1a1aa;
-    font-size: 0.6875rem;
-    font-weight: 500;
     cursor: pointer;
     transition: all 0.12s ease;
   }
@@ -326,18 +325,13 @@
     color: #fafafa;
   }
 
-  .badge-text {
-    max-width: 110px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: monospace;
-  }
-
   .status-indicator {
     width: 6px;
     height: 6px;
     border-radius: 50%;
+    position: absolute;
+    right: 4px;
+    top: 4px;
   }
 
   .status-indicator.online {
@@ -352,14 +346,14 @@
   .snapshot-btn {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     background: #fafafa;
     color: #09090b;
     border: none;
     border-radius: 0.45rem;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 600;
+    padding: 0;
     cursor: pointer;
     transition: all 0.12s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -372,10 +366,6 @@
 
   .snapshot-btn:active {
     transform: translateY(0);
-  }
-
-  .btn-label {
-    letter-spacing: -0.01em;
   }
 
   .spin {
@@ -404,9 +394,6 @@
   }
 
   @media (max-width: 768px) {
-    .badge-text {
-      display: none;
-    }
     .omnibox-container {
       max-width: none;
     }
@@ -420,18 +407,6 @@
 
     .history-controls .icon-btn:not(:first-child) {
       display: none; /* Hide forward and reload on very narrow mobile screens */
-    }
-
-    .btn-label {
-      display: none; /* Only show Camera icon on mobile */
-    }
-
-    .snapshot-btn {
-      padding: 0.35rem 0.5rem;
-    }
-
-    .compact-badge-btn {
-      padding: 0.25rem 0.35rem;
     }
 
     .omnibox {

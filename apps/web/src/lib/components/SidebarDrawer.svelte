@@ -124,7 +124,13 @@ ${item.summary}
           </div>
           <div class="branding-text">
             <h2>Memron Memory Bucket</h2>
-            <span class="mcp-badge">MCP Protocol</span>
+            <div class="branding-meta">
+              <span class="mcp-badge">MCP Protocol</span>
+              <span class="header-status {mcpConfig.status}">
+                <span class="status-dot"></span>
+                {mcpConfig.status === 'connected' ? 'Live' : 'Offline'}
+              </span>
+            </div>
           </div>
         </div>
         <button class="close-btn" on:click={onClose} aria-label="Close sidebar">
@@ -413,32 +419,39 @@ ${item.summary}
 <style>
   .drawer-backdrop {
     position: fixed;
-    inset: 0;
+    top: 81px;
+    right: 0;
+    bottom: 0;
+    left: 0;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(3px);
     z-index: 950;
     display: flex;
+    justify-content: flex-end;
   }
 
   .drawer-panel {
     width: 380px;
     max-width: 90vw;
-    height: 100vh;
-    background: #121215;
-    border-right: 1px solid #27272a;
+    align-self: stretch;
+    margin-left: auto;
+    margin-right: 0;
+    height: 100%;
+    background: #101012;
+    border-left: 1px solid #27272a;
     display: flex;
     flex-direction: column;
-    box-shadow: 20px 0 40px rgba(0, 0, 0, 0.5);
-    animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: -20px 0 40px rgba(0, 0, 0, 0.5);
+    animation: slideInFromRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .drawer-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.85rem 1rem;
+    padding: 0.9rem 1rem 0.8rem;
     border-bottom: 1px solid #27272a;
-    background: #18181b;
+    background: linear-gradient(135deg, #1b1b20 0%, #141417 68%, #111113 100%);
   }
 
   .header-branding {
@@ -474,6 +487,33 @@ ${item.summary}
     letter-spacing: 0.05em;
   }
 
+  .branding-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.15rem;
+  }
+
+  .header-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #71717a;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .header-status .status-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .header-status.connected {
+    color: #86efac;
+  }
+
   .close-btn {
     display: flex;
     align-items: center;
@@ -496,7 +536,7 @@ ${item.summary}
     display: flex;
     background: #18181b;
     border-bottom: 1px solid #27272a;
-    padding: 0.3rem 0.5rem;
+    padding: 0.45rem 0.6rem;
     gap: 0.25rem;
   }
 
@@ -506,7 +546,7 @@ ${item.summary}
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.48rem 0.6rem;
     background: none;
     border: 1px solid transparent;
     border-radius: 0.375rem;
@@ -515,6 +555,7 @@ ${item.summary}
     font-weight: 500;
     cursor: pointer;
     transition: all 0.12s ease;
+    position: relative;
   }
 
   .nav-tab:hover {
@@ -522,9 +563,20 @@ ${item.summary}
   }
 
   .nav-tab.active {
-    background: #27272a;
-    border-color: #3f3f46;
+    background: #24242a;
+    border-color: #45454f;
     color: #fafafa;
+  }
+
+  .nav-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 0.7rem;
+    right: 0.7rem;
+    bottom: -0.45rem;
+    height: 2px;
+    border-radius: 2px;
+    background: #fafafa;
   }
 
   .count-pill {
@@ -1019,9 +1071,9 @@ ${item.summary}
     }
   }
 
-  @keyframes slideIn {
+  @keyframes slideInFromRight {
     from {
-      transform: translateX(-100%);
+      transform: translateX(100%);
     }
     to {
       transform: translateX(0);

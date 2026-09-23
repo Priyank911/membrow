@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import html2canvas from 'html2canvas';
   import type { KnowledgeItem } from '../types';
   import {
     Globe,
@@ -24,6 +25,16 @@
   let iframeError = false;
 
   $: isHomePage = !currentUrl || currentUrl === 'membrow://home' || currentUrl === 'about:blank';
+  $: frameBlockedInWeb = !isElectron && isKnownFrameBlockedUrl(currentUrl);
+
+  function isKnownFrameBlockedUrl(url: string): boolean {
+    try {
+      const hostname = new URL(url).hostname.toLowerCase();
+      return hostname === 'duckduckgo.com' || hostname.endsWith('.duckduckgo.com');
+    } catch {
+      return false;
+    }
+  }
 
   onMount(() => {
     isElectron = typeof window !== 'undefined' && !!window.membrowDesktop?.isDesktop;
@@ -66,6 +77,26 @@
         return await window.membrowDesktop.capturePage(webContentsId);
       } catch (err) {
         console.warn('Native capture failed, falling back to canvas:', err);
+      }
+    }
+
+    // In web mode the home page belongs to this document, so capture its
+    // rendered DOM instead of returning a placeholder illustration.
+    if (isHomePage) {
+      const homeElement = document.querySelector('.home-container') as HTMLElement | null;
+      if (homeElement) {
+        try {
+          const rendered = await html2canvas(homeElement, {
+            backgroundColor: '#000000',
+            imageTimeout: 15000,
+            logging: false,
+            scale: Math.min(2, window.devicePixelRatio || 1),
+            useCORS: true
+          });
+          return rendered.toDataURL('image/png');
+        } catch (err) {
+          console.warn('DOM capture failed, falling back to canvas:', err);
+        }
       }
     }
 
@@ -120,6 +151,7 @@
     }
     return canvas.toDataURL('image/png');
   }
+
 </script>
 
 <div class="webview-wrapper">
@@ -143,27 +175,27 @@
   {:else}
     <!-- Web / Dev Mode Fallback for external sites -->
     <div class="web-preview-container">
-      <div class="web-preview-header">
-        <div class="preview-mode-tag">
-          <ShieldCheck size={12} strokeWidth={2} />
-          <span>Active Web Session</span>
-        </div>
-        <div class="preview-url monospace">{currentUrl}</div>
-        <a href={currentUrl} target="_blank" rel="noreferrer" class="open-external-link">
-          <span>Open Direct</span>
-          <ArrowUpRight size={12} strokeWidth={2} />
-        </a>
-      </div>
-
       <!-- Simulated Webframe Viewport -->
       <div class="simulated-viewport">
-        <iframe
-          src={currentUrl}
-          title="Web Content"
-          class="preview-iframe"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          on:error={() => (iframeError = true)}
-        ></iframe>
+        {#if frameBlockedInWeb || iframeError}
+          <div class="frame-fallback">
+            <div class="frame-fallback-icon"><ShieldCheck size={22} strokeWidth={1.7} /></div>
+            <h2>Open this page directly</h2>
+            <p>This site does not allow embedded previews in the web version.</p>
+            <a href={currentUrl} target="_blank" rel="noreferrer" class="fallback-link">
+              <span>Open in a new tab</span>
+              <ArrowUpRight size={13} strokeWidth={2} />
+            </a>
+          </div>
+        {:else}
+          <iframe
+            src={currentUrl}
+            title="Web Content"
+            class="preview-iframe"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            on:error={() => (iframeError = true)}
+          ></iframe>
+        {/if}
       </div>
     </div>
   {/if}
@@ -197,58 +229,6 @@
     overflow: hidden;
   }
 
-  .web-preview-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.8rem;
-    padding: 0.45rem 1rem;
-    background: #121215;
-    border-bottom: 1px solid #1f1f23;
-  }
-
-  .preview-mode-tag {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: #22c55e;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    flex-shrink: 0;
-  }
-
-  .preview-url {
-    font-size: 0.75rem;
-    color: #a1a1aa;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 500px;
-    flex: 1;
-  }
-
-  .open-external-link {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: #a1a1aa;
-    text-decoration: none;
-    font-size: 0.6875rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 0.25rem;
-    border: 1px solid #27272a;
-    transition: all 0.12s ease;
-    flex-shrink: 0;
-  }
-
-  .open-external-link:hover {
-    background: #18181b;
-    color: #fafafa;
-    border-color: #3f3f46;
-  }
-
   .simulated-viewport {
     flex: 1;
     width: 100%;
@@ -263,13 +243,62 @@
     background: #ffffff;
   }
 
-  .monospace {
-    font-family: monospace;
+  .frame-fallback {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    padding: 2rem;
+    color: #a1a1aa;
+    text-align: center;
+    background: radial-gradient(circle at 50% 42%, #18181b 0, #09090b 38%);
   }
 
-  @media (max-width: 640px) {
-    .preview-url {
-      max-width: 180px;
-    }
+  .frame-fallback-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #3f3f46;
+    border-radius: 0.75rem;
+    color: #d4d4d8;
+    background: #121215;
   }
+
+  .frame-fallback h2 {
+    margin: 0.2rem 0 0;
+    color: #fafafa;
+    font-size: 1rem;
+    font-weight: 650;
+  }
+
+  .frame-fallback p {
+    margin: 0;
+    max-width: 22rem;
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  .fallback-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid #3f3f46;
+    border-radius: 0.4rem;
+    color: #fafafa;
+    background: #18181b;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .fallback-link:hover {
+    border-color: #71717a;
+    background: #27272a;
+  }
+
 </style>

@@ -147,31 +147,24 @@ ipcMain.handle("desktop:capture-page", async (event, webContentsId) => {
     if (!targetContents) {
       throw new Error("Target webview not found");
     }
+
+    // Capture only the visible webview surface. A layout-sized,
+    // beyond-viewport capture can stitch repeated content on long pages.
+    if (typeof targetContents.capturePage === "function") {
+      const image = await targetContents.capturePage();
+      return image.toDataURL();
+    }
+
     const debuggerAttached = targetContents.debugger.isAttached();
     if (!debuggerAttached) targetContents.debugger.attach("1.3");
     try {
       await targetContents.debugger.sendCommand("Page.enable");
-      const metrics = await targetContents.debugger.sendCommand(
-        "Page.getLayoutMetrics",
-      );
-      const contentSize = metrics.cssContentSize || metrics.contentSize;
       const screenshot = await targetContents.debugger.sendCommand(
         "Page.captureScreenshot",
         {
           format: "png",
-          captureBeyondViewport: true,
+          captureBeyondViewport: false,
           fromSurface: true,
-          ...(contentSize
-            ? {
-                clip: {
-                  x: 0,
-                  y: 0,
-                  width: contentSize.width,
-                  height: contentSize.height,
-                  scale: 1,
-                },
-              }
-            : {}),
         },
       );
       return `data:image/png;base64,${screenshot.data}`;

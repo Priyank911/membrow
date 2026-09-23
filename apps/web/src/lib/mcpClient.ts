@@ -12,78 +12,13 @@ const DEFAULT_CONFIG: McpConnectionConfig = {
   lastSyncedAt: undefined,
 };
 
-export const INITIAL_SEEDS: KnowledgeItem[] = [
-  {
-    id: "seed-1",
-    title: "Attention Is All You Need (Transformer Architecture)",
-    url: "https://arxiv.org/abs/1706.03762",
-    domain: "arxiv.org",
-    author: "Vaswani et al.",
-    category: "research",
-    summary:
-      "The foundational paper introducing the Transformer architecture based entirely on self-attention mechanisms without recurrence or convolutions.",
-    tags: ["research", "transformer", "attention", "architecture"],
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    mcpSynced: true,
-    notes: "Core foundation reference for LLMs.",
-  },
-  {
-    id: "seed-2",
-    title: "Qwen 2.5 72B Instruct - Open Weights Model",
-    url: "https://huggingface.co/Qwen/Qwen2.5-72B-Instruct",
-    domain: "huggingface.co",
-    author: "Qwen Team",
-    category: "model",
-    summary:
-      "State-of-the-art open-weights language model with strong code, math, and multi-turn instruction following capabilities.",
-    tags: ["model", "llm", "open-weights", "hf"],
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    mcpSynced: true,
-    notes: "Exceptional reasoning benchmarks.",
-  },
-  {
-    id: "seed-3",
-    title: "Model Context Protocol (MCP) TypeScript SDK",
-    url: "https://github.com/modelcontextprotocol/typescript-sdk",
-    domain: "github.com",
-    author: "modelcontextprotocol",
-    category: "tool",
-    summary:
-      "Open protocol standard connecting AI assistants with local and remote resources, tools, and memory buckets.",
-    tags: ["tool", "mcp", "protocol", "sdk"],
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    mcpSynced: true,
-    notes: "Used for connecting agent memory buckets.",
-  },
-  {
-    id: "seed-4",
-    title: "Autonomous Browser Agent Runtime",
-    url: "https://x.com/karpathy/status/1750000000000000000",
-    domain: "x.com",
-    author: "@karpathy",
-    category: "agent",
-    summary:
-      "Discussion on agentic operating systems: browser automation, persistent memory loops, and verification protocols.",
-    tags: ["agent", "automation", "memory-layer"],
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    mcpSynced: true,
-    notes: "Key architectural insight for desktop browser agents.",
-  },
-  {
-    id: "seed-5",
-    title: "Antigravity Dynamic Skill Specification",
-    url: "https://github.com/google/antigravity/tree/main/skills",
-    domain: "github.com",
-    author: "google-deepmind",
-    category: "skill",
-    summary:
-      "Self-contained executable instructions, YAML frontmatter, and contextual tooling for complex code refactoring and memory synthesis.",
-    tags: ["skill", "antigravity", "agent-skills", "prompts"],
-    createdAt: new Date(Date.now() - 1800000).toISOString(),
-    mcpSynced: true,
-    notes: "Standard specification for agent capabilities.",
-  },
-];
+const LEGACY_SEED_IDS = new Set([
+  "seed-1",
+  "seed-2",
+  "seed-3",
+  "seed-4",
+  "seed-5",
+]);
 
 export class McpMemoryClient {
   private config: McpConnectionConfig;
@@ -134,17 +69,25 @@ export class McpMemoryClient {
   public getItems(bucketName?: string): KnowledgeItem[] {
     const bucket = bucketName || this.config.bucketName || "developer-research";
     if (typeof window === "undefined" || !window.localStorage) {
-      return INITIAL_SEEDS;
+      return [];
     }
     const key = `${STORAGE_KEY_ITEMS_PREFIX}${bucket}`;
     const stored = window.localStorage.getItem(key);
     if (!stored) {
-      // Initialize with seed items
-      window.localStorage.setItem(key, JSON.stringify(INITIAL_SEEDS));
-      return INITIAL_SEEDS;
+      return [];
     }
     try {
-      return JSON.parse(stored);
+      const items = JSON.parse(stored);
+      if (!Array.isArray(items)) return [];
+
+      const filteredItems = items.filter(
+        (item): item is KnowledgeItem =>
+          item && typeof item === "object" && !LEGACY_SEED_IDS.has(item.id),
+      );
+      if (filteredItems.length !== items.length) {
+        window.localStorage.setItem(key, JSON.stringify(filteredItems));
+      }
+      return filteredItems;
     } catch {
       return [];
     }

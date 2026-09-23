@@ -39,7 +39,8 @@
   "dependencies": {
     "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "^8.5.2",
-    "@capacitor/core": "^8.5.2"
+    "@capacitor/core": "^8.5.2",
+    "html2canvas": "^1.4.1"
   },
   "build": {
     "appId": "com.membrow.app",

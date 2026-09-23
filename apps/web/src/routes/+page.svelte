@@ -105,7 +105,7 @@
   function handleNavigate(newUrl: string) {
     const isHome = newUrl === HOME_URL || !newUrl;
     const resolvedUrl = isHome ? HOME_URL : newUrl;
-    const resolvedTitle = isHome ? 'Membrow Home' : newUrl;
+    const resolvedTitle = isHome ? 'Membrow Home' : isSearchUrl(newUrl) ? 'Search results' : newUrl;
 
     tabs = tabs.map((t) => {
       if (t.id === activeTabId) {
@@ -118,6 +118,15 @@
       }
       return t;
     });
+  }
+
+  function isSearchUrl(value: string): boolean {
+    try {
+      const hostname = new URL(value).hostname.toLowerCase();
+      return hostname === 'duckduckgo.com' || hostname.endsWith('.duckduckgo.com');
+    } catch {
+      return false;
+    }
   }
 
   function handleBack() {
@@ -150,16 +159,12 @@
     }, 600);
   }
 
-  function handleHome() {
-    handleNavigate(HOME_URL);
-  }
-
   function handlePageLoaded(title: string, url: string) {
     tabs = tabs.map((t) => {
       if (t.id === activeTabId) {
         return {
           ...t,
-          title: url === HOME_URL ? 'Membrow Home' : title || t.title,
+          title: url === HOME_URL ? 'Membrow Home' : isSearchUrl(url) ? 'Search results' : title || t.title,
           url: url || t.url,
           loading: false
         };
@@ -315,7 +320,6 @@
     onBack={handleBack}
     onForward={handleForward}
     onReload={handleReload}
-    onHome={handleHome}
     onSnapshot={handleTriggerSnapshot}
   />
 

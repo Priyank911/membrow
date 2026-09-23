@@ -4,7 +4,6 @@
     Search,
     Database,
     ArrowUpRight,
-    Camera,
     ShieldCheck
   } from '@lucide/svelte';
 
@@ -74,7 +73,7 @@
           type="text"
           class="home-search-input"
           bind:value={searchQuery}
-          placeholder="Search DuckDuckGo or enter URL (e.g. x.com, github.com, arxiv.org)..."
+          placeholder="Search the web or enter a URL (e.g. x.com, github.com, arxiv.org)..."
         />
         <button type="submit" class="home-search-btn" disabled={!searchQuery.trim()}>
           <span>Search</span>
@@ -115,13 +114,6 @@
       </button>
     </section>
 
-    <!-- Workflow Tip -->
-    <footer class="home-footer-tip">
-      <div class="tip-content">
-        <Camera size={14} strokeWidth={1.8} color="#a1a1aa" />
-        <span>While browsing any site, click <strong>Clip</strong> in the top-right corner to extract metadata and store in your bucket.</span>
-      </div>
-    </footer>
   </div>
 </div>
 
@@ -452,30 +444,6 @@
   .open-bucket-btn:hover {
     background: #27272a;
     border-color: #3f3f46;
-    color: #fafafa;
-  }
-
-  /* Tip footer */
-  .home-footer-tip {
-    display: flex;
-    justify-content: center;
-    padding-top: 0.5rem;
-    justify-content: flex-start;
-  }
-
-  .tip-content {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.65rem;
-    color: #71717a;
-    background: #121215;
-    border: 1px solid #27272a;
-    border-radius: 0.5rem;
-    padding: 0.35rem 0.65rem;
-  }
-
-  .tip-content strong {
     color: #fafafa;
   }
 

@@ -285,9 +285,9 @@
   .modal-content {
     background: #0b0b0c;
     border: 1px solid #29292d;
-    border-radius: 16px;
+    border-radius: 12px;
     width: min(1180px, calc(100vw - 48px));
-    height: min(720px, calc(100vh - 48px));
+    height: min(650px, calc(100vh - 40px));
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
@@ -364,7 +364,7 @@
     flex-direction: column;
     gap: 0.75rem;
     min-width: 0;
-    border-left: 1px solid #29292d;
+    border-left: 1px solid #2b2b30;
   }
 
   .form-heading {
@@ -435,7 +435,7 @@
 
   .capture-pane {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 2 / 4;
     min-width: 0;
     min-height: 0;
     display: flex;
@@ -443,7 +443,8 @@
     padding: 1.1rem;
     background: #070708;
     min-width: 0;
-    border-right: 1px solid #29292d;
+    border-right: 1px solid #3a3a42;
+    box-shadow: 1px 0 0 #101012;
   }
 
   .capture-stage {
@@ -473,8 +474,9 @@
   }
 
   .capture-stage img {
-    width: 100%;
+    width: auto;
     height: auto;
+    max-width: 100%;
     max-height: 100%;
     object-fit: contain;
     transform-origin: center center;
@@ -666,6 +668,8 @@
     grid-row: 3;
     padding: 0.7rem 1.2rem 0.85rem;
     background: #0b0b0c;
+    border-left: 1px solid #2b2b30;
+    border-top: 1px solid #202024;
   }
 
   .btn-secondary {
@@ -747,6 +751,7 @@
       grid-column: 1;
       grid-row: 4;
       padding: 0.65rem 0.85rem;
+      border-left: 0;
     }
   }
 </style>
